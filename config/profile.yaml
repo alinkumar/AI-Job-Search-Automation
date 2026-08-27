@@ -1,0 +1,58 @@
+
+candidate:
+  name: "Alin Kumar"
+  education: "B.Sc. (Hons.) Computer Science"
+  status: "Pursuing"
+  location: "Delhi, India"
+
+target_roles:
+  primary:
+    - "Data Analyst"
+    - "Data Analyst Intern"
+    - "Junior Data Analyst"
+    - "Data Analytics Intern"
+    - "Data Science Intern"
+  secondary:
+    - "BI Analyst"
+    - "Reporting Analyst"
+    - "MIS Analyst"
+    - "Analytics Associate"
+
+preferred_locations:
+  - "Delhi"
+  - "Noida"
+  - "Gurgaon"
+  - "Remote"
+  
+
+experience_level:
+  - "Internship"
+  - "Fresher"
+  - "Entry Level"
+
+core_skills:
+  - "SQL"
+  - "Microsoft Excel"
+  - "Power BI"
+  - "Python"
+  - "Pandas"
+  - "NumPy"
+  - "Data Cleaning"
+  - "Exploratory Data Analysis"
+  - "Feature Engineering"
+  - "Statistical Analysis"
+  - "Data Visualization"
+  - "MySQL"
+
+additional_skills:
+  - "Machine Learning"
+  - "Deep Learning"
+  - "Scikit-learn"
+  - "XGBoost"
+  - "Git"
+  - "GitHub"
+  - "Matplotlib"
+  - "Seaborn"
+  - "Plotly"
+
+max_experience_years: 2

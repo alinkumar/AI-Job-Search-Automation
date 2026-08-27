@@ -1,0 +1,46 @@
+search:
+  locations:
+    - "Delhi"
+    - "Noida"
+    - "Gurgaon"
+    - "Remote"
+
+  primary_roles:
+    - "Data Analyst"
+    - "Data Analyst Intern"
+    - "Junior Data Analyst"
+    - "Data Analytics Intern"
+    - "Data Science Intern"
+
+  secondary_roles:
+    - "BI Analyst"
+    - "Reporting Analyst"
+    - "MIS Analyst"
+    - "Analytics Associate"
+
+  experience:
+    - "Fresher"
+    - "Entry Level"
+    - "Internship"
+    - "0-1 years"
+    - "0-2 years"
+
+filters:
+  minimum_match_score: 70
+  preferred_match_score: 80
+  max_experience_years: 2
+  max_job_age_days: 7
+  prioritize_today: true
+  prioritize_fresh: true
+
+work_modes:
+  - "On-site"
+  - "Hybrid"
+  - "Remote"
+
+search_settings:
+  max_jobs_per_query: 50
+  pages_per_query: 3
+  remove_duplicates: true
+  scam_check: true
+  ai_matching: true
