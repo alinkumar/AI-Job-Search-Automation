@@ -6,7 +6,7 @@
 
 **Search less. Filter smarter. Find better opportunities. 🚀**
 
-<img src="job-search-automation.gif" alt="AI Job Search Automation animated workflow" width="900"/>
+<img src="assets/job-search-automation.gif" alt="AI Job Search Automation animated workflow" width="900"/>
 
 <br/>
 
