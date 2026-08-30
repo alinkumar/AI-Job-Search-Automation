@@ -10,6 +10,24 @@ def normalize_text(text):
     return text
 
 
+def normalize_location(text):
+    text = normalize_text(text)
+
+    location_aliases = {
+        "gurgaon": "gurgaon",
+        "gurugram": "gurgaon",
+        "noida": "noida",
+        "new delhi": "delhi",
+        "delhi": "delhi"
+    }
+
+    for location, normalized in location_aliases.items():
+        if location in text:
+            return normalized
+
+    return text
+
+
 def get_job_key(job):
     source = normalize_text(job.get("source"))
     job_id = normalize_text(job.get("job_id"))
@@ -24,16 +42,25 @@ def get_url_key(job):
     return normalize_text(job.get("job_url"))
 
 
+def get_company_role_key(job):
+    company = normalize_text(job.get("company"))
+    role = normalize_text(job.get("role"))
+
+    return f"{company}|{role}"
+
+
 def get_company_role_location_key(job):
     company = normalize_text(job.get("company"))
     role = normalize_text(job.get("role"))
-    location = normalize_text(job.get("location"))
+    location = normalize_location(job.get("location"))
 
     return f"{company}|{role}|{location}"
 
 
 def get_description_hash(job):
-    description = normalize_text(job.get("description"))
+    description = normalize_text(
+        job.get("description")
+    )
 
     if not description:
         return ""
@@ -44,40 +71,59 @@ def get_description_hash(job):
 
 
 def description_similarity(job_a, job_b):
-    text_a = normalize_text(job_a.get("description"))
-    text_b = normalize_text(job_b.get("description"))
+    text_a = normalize_text(
+        job_a.get("description")
+    )
+
+    text_b = normalize_text(
+        job_b.get("description")
+    )
 
     if not text_a or not text_b:
         return 0
 
-    return SequenceMatcher(None, text_a, text_b).ratio()
+    return SequenceMatcher(
+        None,
+        text_a,
+        text_b
+    ).ratio()
 
 
 def classify_job(job, seen_jobs):
     job_key = get_job_key(job)
     url_key = get_url_key(job)
+    company_role = get_company_role_key(job)
     company_role_location = get_company_role_location_key(job)
     description_hash = get_description_hash(job)
 
     for seen in seen_jobs:
 
-        if job_key and job_key == seen["job_key"]:
-            return "DUPLICATE", "SAME SOURCE + JOB ID"
-
-        if url_key and url_key == seen["url_key"]:
-            return "DUPLICATE", "SAME JOB URL"
+        if (
+            job_key
+            and job_key == seen["job_key"]
+        ):
+            return (
+                "DUPLICATE",
+                "SAME SOURCE + JOB ID"
+            )
 
         if (
-            company_role_location
-            and company_role_location == seen["company_role_location"]
+            url_key
+            and url_key == seen["url_key"]
         ):
-            return "POSSIBLE REPOST", "SAME COMPANY + ROLE + LOCATION"
+            return (
+                "DUPLICATE",
+                "SAME JOB URL"
+            )
 
         if (
             description_hash
             and description_hash == seen["description_hash"]
         ):
-            return "DUPLICATE", "IDENTICAL DESCRIPTION"
+            return (
+                "POSSIBLE REPOST",
+                "IDENTICAL DESCRIPTION"
+            )
 
         similarity = description_similarity(
             job,
@@ -85,11 +131,25 @@ def classify_job(job, seen_jobs):
         )
 
         if (
-            company_role_location
-            and company_role_location == seen["company_role_location"]
-            and similarity >= 0.85
+            company_role
+            and company_role == seen["company_role"]
+            and similarity >= 0.80
         ):
-            return "POSSIBLE REPOST", "HIGH DESCRIPTION SIMILARITY"
+            return (
+                "POSSIBLE REPOST",
+                "SAME COMPANY + ROLE + SIMILAR DESCRIPTION"
+            )
+
+        if (
+            company_role_location
+            and company_role_location
+            == seen["company_role_location"]
+        ):
+            if similarity >= 0.65:
+                return (
+                    "POSSIBLE REPOST",
+                    "SAME COMPANY + ROLE + LOCATION"
+                )
 
     return "UNIQUE", None
 
@@ -125,6 +185,7 @@ def deduplicate_jobs(jobs):
             "job": job,
             "job_key": get_job_key(job),
             "url_key": get_url_key(job),
+            "company_role": get_company_role_key(job),
             "company_role_location": get_company_role_location_key(job),
             "description_hash": get_description_hash(job)
         })

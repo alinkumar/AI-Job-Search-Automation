@@ -1,35 +1,39 @@
 CORE_SKILL_WEIGHTS = {
-    "sql": 10,
-    "microsoft excel": 8,
-    "power bi": 8,
-    "python": 7,
-    "pandas": 5,
-    "exploratory data analysis": 4,
-    "statistical analysis": 4,
-    "data cleaning": 4,
-    "numpy": 2,
-    "data visualization": 2,
-    "feature engineering": 1,
-    "mysql": 1
+    "sql": 12,
+    "microsoft excel": 10,
+    "power bi": 10,
+    "python": 9,
+    "pandas": 6,
+    "exploratory data analysis": 5,
+    "statistical analysis": 5,
+    "data cleaning": 5,
+    "data visualization": 4,
+    "numpy": 3,
+    "mysql": 3,
+    "feature engineering": 2
 }
 
+
 ROLE_WEIGHTS = {
+    "data analyst intern": 30,
+    "data analytics intern": 30,
+    "junior data analyst": 29,
+    "data science intern": 27,
     "data analyst": 25,
-    "data analyst intern": 25,
-    "junior data analyst": 25,
-    "data analytics intern": 25,
-    "data science intern": 20,
-    "bi analyst": 18,
-    "reporting analyst": 16,
-    "mis analyst": 15,
-    "analytics associate": 15
+    "bi analyst": 23,
+    "reporting analyst": 21,
+    "mis analyst": 20,
+    "analytics associate": 20
 }
 
 
 def calculate_match_score(job, profile):
-    role = job.get("role", "").lower()
+    role = str(
+        job.get("role", "")
+    ).lower().strip()
+
     job_skills = {
-        skill.lower()
+        str(skill).lower().strip()
         for skill in job.get("skills", [])
     }
 
@@ -39,49 +43,111 @@ def calculate_match_score(job, profile):
 
     for target_role, weight in ROLE_WEIGHTS.items():
         if target_role in role:
-            role_score = max(role_score, weight)
+            role_score = max(
+                role_score,
+                weight
+            )
 
     score += role_score
 
-    matched_core_skills = []
     skill_score = 0
 
     for skill, weight in CORE_SKILL_WEIGHTS.items():
         if skill in job_skills:
-            matched_core_skills.append(skill)
             skill_score += weight
 
-    score += min(skill_score, 35)
+    score += min(
+        skill_score,
+        40
+    )
 
     additional_skills = {
-        skill.lower()
-        for skill in profile["additional_skills"]
+        str(skill).lower().strip()
+        for skill in profile.get(
+            "additional_skills",
+            []
+        )
     }
 
-    additional_matches = job_skills & additional_skills
-    score += min(len(additional_matches) * 2, 10)
+    additional_matches = (
+        job_skills & additional_skills
+    )
 
-    experience = job.get("experience", "").lower()
+    score += min(
+        len(additional_matches) * 2,
+        8
+    )
 
-    if any(term in experience for term in [
-        "fresher",
-        "entry level",
-        "intern",
-        "internship",
-        "0-1",
-        "0-2",
-        "2 years"
-    ]):
-        score += 15
+    experience = str(
+        job.get("experience", "")
+    ).lower().strip()
 
-    location = job.get("location", "").lower()
+    if any(
+        term in experience
+        for term in [
+            "fresher",
+            "entry level",
+            "entry-level",
+            "intern",
+            "internship"
+        ]
+    ):
+        score += 20
 
-    preferred_locations = {
-        location_name.lower()
-        for location_name in profile["preferred_locations"]
-    }
+    elif "0-1 years" in experience:
+        score += 20
 
-    if any(location_name in location for location_name in preferred_locations):
+    elif "0-1 year" in experience:
+        score += 20
+
+    elif "1 year" in experience:
+        score += 18
+
+    elif "1+ year" in experience:
+        score += 17
+
+    elif "2 years" in experience:
         score += 10
 
-    return min(score, 100)
+    elif "2+ years" in experience:
+        score += 8
+
+    elif experience in [
+        "",
+        "unknown"
+    ]:
+        score += 5
+
+    location = str(
+        job.get("location", "")
+    ).lower().strip()
+
+    preferred_locations = {
+        str(location_name).lower().strip()
+        for location_name in profile.get(
+            "preferred_locations",
+            []
+        )
+    }
+
+    if any(
+        location_name in location
+        for location_name in preferred_locations
+    ):
+        score += 10
+
+    if any(
+        term in location
+        for term in [
+            "delhi",
+            "noida",
+            "gurgaon",
+            "gurugram"
+        ]
+    ):
+        score += 2
+
+    return min(
+        score,
+        100
+    )

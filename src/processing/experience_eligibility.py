@@ -6,30 +6,62 @@ def check_experience_eligibility(job, profile):
         job.get("experience", "")
     ).strip().lower()
 
-    max_years = profile.get(
-        "max_experience_years",
-        2
+    max_years = float(
+        profile.get(
+            "max_experience_years",
+            2
+        )
     )
 
-    if not experience:
+    if not experience or experience == "unknown":
         return {
-            "eligible": False,
+            "eligible": True,
             "status": "UNKNOWN",
-            "reason": "EXPERIENCE NOT PROVIDED"
+            "reason": "EXPERIENCE NOT PROVIDED - MANUAL REVIEW"
         }
 
-    if (
-        "fresher" in experience
-        or "entry level" in experience
+    if any(
+        term in experience
+        for term in [
+            "fresher",
+            "freshers",
+            "entry level",
+            "entry-level",
+            "intern",
+            "internship"
+        ]
     ):
         return {
             "eligible": True,
             "status": "COMPATIBLE",
-            "reason": "FRESHER / ENTRY LEVEL"
+            "reason": "FRESHER / ENTRY LEVEL / INTERNSHIP"
+        }
+
+    plus_match = re.search(
+        r"(\d+(?:\.\d+)?)\s*\+\s*years?",
+        experience
+    )
+
+    if plus_match:
+        years = float(
+            plus_match.group(1)
+        )
+
+        if years <= 1:
+            return {
+                "eligible": True,
+                "status": "COMPATIBLE",
+                "reason": f"REQUIRES {years:g}+ YEARS"
+            }
+
+        return {
+            "eligible": False,
+            "status": "INCOMPATIBLE",
+            "reason": f"REQUIRES {years:g}+ YEARS"
         }
 
     range_match = re.search(
-        r"(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*years?",
+        r"(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*years?",
         experience
     )
 
@@ -37,25 +69,39 @@ def check_experience_eligibility(job, profile):
         minimum = float(
             range_match.group(1)
         )
+
         maximum = float(
             range_match.group(2)
         )
 
-        if maximum <= max_years:
+        if minimum <= 1:
             return {
                 "eligible": True,
                 "status": "COMPATIBLE",
-                "reason": f"EXPERIENCE WITHIN {max_years} YEARS"
+                "reason": (
+                    f"REQUIRES {minimum:g}-{maximum:g} YEARS"
+                )
+            }
+
+        if minimum <= max_years:
+            return {
+                "eligible": True,
+                "status": "REVIEW",
+                "reason": (
+                    f"REQUIRES {minimum:g}-{maximum:g} YEARS"
+                )
             }
 
         return {
             "eligible": False,
             "status": "INCOMPATIBLE",
-            "reason": f"REQUIRES {minimum}-{maximum} YEARS"
+            "reason": (
+                f"REQUIRES {minimum:g}-{maximum:g} YEARS"
+            )
         }
 
     single_match = re.search(
-        r"(\d+(?:\.\d+)?)\+?\s*years?",
+        r"(\d+(?:\.\d+)?)\s*years?",
         experience
     )
 
@@ -64,21 +110,28 @@ def check_experience_eligibility(job, profile):
             single_match.group(1)
         )
 
-        if years <= max_years:
+        if years <= 1:
             return {
                 "eligible": True,
                 "status": "COMPATIBLE",
-                "reason": f"EXPERIENCE WITHIN {max_years} YEARS"
+                "reason": f"REQUIRES {years:g} YEARS"
+            }
+
+        if years <= max_years:
+            return {
+                "eligible": True,
+                "status": "REVIEW",
+                "reason": f"REQUIRES {years:g} YEARS"
             }
 
         return {
             "eligible": False,
             "status": "INCOMPATIBLE",
-            "reason": f"REQUIRES {years}+ YEARS"
+            "reason": f"REQUIRES {years:g} YEARS"
         }
 
     return {
-        "eligible": False,
+        "eligible": True,
         "status": "UNKNOWN",
-        "reason": "EXPERIENCE COULD NOT BE DETERMINED"
+        "reason": "EXPERIENCE COULD NOT BE DETERMINED - MANUAL REVIEW"
     }

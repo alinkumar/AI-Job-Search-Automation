@@ -1,8 +1,13 @@
 import yaml
 
-from src.collectors.multi_source import collect_adzuna, collect_muse
+from src.collectors.multi_source import collect_all
 from src.processing.batch_processor import process_batch
 from src.storage.json_store import save_results
+from src.storage.google_sheets import append_jobs
+from src.storage.job_history import (
+    filter_new_jobs,
+    remember_jobs
+)
 
 
 def load_profile():
@@ -16,53 +21,65 @@ def load_profile():
 def main():
     profile = load_profile()
 
-    roles = (
-        profile["target_roles"]["primary"]
-        + profile["target_roles"]["secondary"]
-    )
-
-    adzuna_jobs = collect_adzuna(
-        roles,
-        profile["preferred_locations"],
-        pages=1,
-        max_jobs=10
-    )
-
-    muse_jobs = collect_muse(
-        ["Data and Analytics", "Data Science"],
-        [
-            "New Delhi, India",
-            "Noida, India",
-            "Gurgaon, India"
-        ],
-        levels=(
-            "Entry Level",
-            "Internship"
-        ),
-        pages=1
-    )
-
-    raw_jobs = adzuna_jobs + muse_jobs
+    raw_jobs = collect_all()
 
     output = process_batch(
         raw_jobs,
         profile
     )
 
-    file_path = save_results(output)
-
     results = output["results"]
+
+    jobs = [
+        result["job"]
+        for result in results
+    ]
+
+    new_jobs, already_seen = filter_new_jobs(
+        jobs
+    )
+
+    new_job_urls = {
+        job.get("job_url", "")
+        for job in new_jobs
+        if job.get("job_url", "")
+    }
+
+    results = [
+        result
+        for result in results
+        if result["job"].get("job_url", "")
+        in new_job_urls
+    ]
+
+    output["results"] = results
+
+    sheet_count = append_jobs(
+        results
+    )
+
+    remember_jobs(
+        new_jobs
+    )
+
+    file_path = save_results(
+        output
+    )
 
     decision_counts = {
         "APPLY": 0,
         "STRONG MATCH": 0,
         "REVIEW": 0,
+        "CONSIDER": 0,
         "SKIP": 0,
         "DO NOT APPLY": 0
     }
 
     for result in results:
-        decision = result["decision"]["decision"]
+        decision = result["decision"].get(
+            "decision",
+            ""
+        )
 
         if decision in decision_counts:
             decision_counts[decision] += 1
@@ -71,17 +88,41 @@ def main():
         decision_counts["APPLY"]
         + decision_counts["STRONG MATCH"]
         + decision_counts["REVIEW"]
+        + decision_counts["CONSIDER"]
     )
+
+    source_counts = {}
+
+    for item in raw_jobs:
+        source = item.get(
+            "_source",
+            "Unknown"
+        )
+
+        source_counts[source] = (
+            source_counts.get(source, 0) + 1
+        )
 
     print("\n")
     print("=" * 64)
     print("AI JOB SEARCH AUTOMATION")
     print("=" * 64)
 
-    print(f"ADZUNA:              {len(adzuna_jobs)}")
-    print(f"THE MUSE:            {len(muse_jobs)}")
-    print(f"RAW JOBS:            {len(raw_jobs)}")
-    print(f"FINAL RESULTS:       {len(results)}")
+    for source, count in source_counts.items():
+        print(
+            f"{source.upper():20}"
+            f"{count}"
+        )
+
+    print(
+        f"RAW JOBS:            "
+        f"{len(raw_jobs)}"
+    )
+
+    print(
+        f"FINAL RESULTS:       "
+        f"{len(results)}"
+    )
 
     print(
         f"LOCATION REJECTED:   "
@@ -98,7 +139,15 @@ def main():
         f"{len(output['rejected_experience'])}"
     )
 
-    print(f"OLD:                 {len(output['old_jobs'])}")
+    print(
+        f"OLD:                 "
+        f"{len(output['old_jobs'])}"
+    )
+
+    print(
+        f"ALREADY SEEN:        "
+        f"{len(already_seen)}"
+    )
 
     print(
         f"DUPLICATES:          "
@@ -131,6 +180,11 @@ def main():
     )
 
     print(
+        f"CONSIDER:            "
+        f"{decision_counts['CONSIDER']}"
+    )
+
+    print(
         f"SKIP:                "
         f"{decision_counts['SKIP']}"
     )
@@ -151,7 +205,9 @@ def main():
     print("=" * 64)
 
     if not results:
-        print("\nNo jobs passed all hard filters.")
+        print(
+            "\nNo new actionable jobs found."
+        )
 
     for index, result in enumerate(
         results,
@@ -162,47 +218,57 @@ def main():
 
         print(
             f"\n{index}. "
-            f"{job['company']} | "
-            f"{job['role']}"
+            f"{job.get('company', '')} | "
+            f"{job.get('role', '')}"
+        )
+
+        print(
+            f"Source: "
+            f"{job.get('source', '')}"
         )
 
         print(
             f"Location: "
-            f"{job['location']}"
+            f"{job.get('location', '')}"
         )
 
         print(
             f"Experience: "
-            f"{job['experience']}"
+            f"{job.get('experience', '')}"
         )
 
         print(
             f"Skills: "
-            f"{', '.join(job['skills'])}"
+            f"{', '.join(job.get('skills', []))}"
         )
 
         print(
             f"Score: "
-            f"{decision['match_score']} | "
+            f"{decision.get('match_score', '')} | "
             f"Risk: "
-            f"{decision['risk']} | "
+            f"{decision.get('risk', '')} | "
             f"Quality: "
-            f"{decision['quality']}"
+            f"{decision.get('quality', '')}"
         )
 
         print(
             f"Decision: "
-            f"{decision['decision']}"
+            f"{decision.get('decision', '')}"
         )
 
         print(
             f"URL: "
-            f"{job['job_url']}"
+            f"{job.get('job_url', '')}"
         )
 
     print("\n")
     print("=" * 64)
-    print(f"SAVED: {file_path}")
+    print(
+        f"SAVED: {file_path}"
+    )
+    print(
+        f"SHEET: {sheet_count} jobs added"
+    )
     print("=" * 64)
 
 
