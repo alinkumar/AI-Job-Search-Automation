@@ -260,6 +260,22 @@ This turns the search process into a lightweight personal job-search database.
 
 ---
 
+# 📊 Google Sheets Output
+
+The automation tracks newly discovered job opportunities in a dedicated Google Sheet, keeping the search results structured, reviewable, and easy to act on.
+
+The sheet captures the key decision-making fields used by the pipeline, including:
+
+`Date` • `Source` • `Company` • `Role` • `Location` • `Work Mode` • `Experience` • `Skills` • `Score` • `Risk` • `Quality` • `Decision` • `Job URL`
+
+### Live Output Example
+
+<img src="assets/sheet.jpeg" alt="AI Job Search Automation Google Sheets output" width="1100"/>
+
+This provides a practical view of how the automation turns filtered job listings into a personal, searchable job-tracking workflow.
+
+---
+
 # 🧠 Job History
 
 The system keeps a local history of previously seen job URLs.
